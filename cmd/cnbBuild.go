@@ -35,6 +35,13 @@ type cnbBuildUtilsBundle struct {
 	*docker.Client
 }
 
+type cnbBuildTelemetryData struct {
+	Version               int             `json:"version"`
+	Config                cnbBuildOptions `json:"config"`
+	ProjectDescriptorUsed bool            `json:"projectDescriptorUsed"`
+	Buildpacks            []string        `json:"buildpacks"`
+}
+
 func setCustomBuildpacks(bpacks []string, dockerCreds string, utils cnbutils.BuildUtils) (string, string, error) {
 	buildpacksPath := "/tmp/buildpacks"
 	orderPath := "/tmp/buildpacks/order.toml"
@@ -240,6 +247,8 @@ func (c *cnbBuildOptions) mergeEnvVars(vars map[string]interface{}) {
 func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, utils cnbutils.BuildUtils, commonPipelineEnvironment *cnbBuildCommonPipelineEnvironment, httpClient piperhttp.Sender) error {
 	var err error
 
+	customTelemetryData := cnbBuildTelemetryData{Version: 1, Config: *config}
+
 	err = isBuilder(utils)
 	if err != nil {
 		log.SetErrorCategory(log.ErrorConfiguration)
@@ -255,6 +264,7 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		return errors.Wrap(err, "failed to check if project descriptor exists")
 	}
 
+	customTelemetryData.ProjectDescriptorUsed = projDescExists
 	if projDescExists {
 		descriptor, err := project.ParseDescriptor(config.ProjectDescriptor, utils, httpClient)
 		if err != nil {
@@ -267,6 +277,7 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		if (config.Buildpacks == nil || len(config.Buildpacks) == 0) && len(descriptor.Buildpacks) > 0 {
 			config.Buildpacks = descriptor.Buildpacks
 		}
+		customTelemetryData.Buildpacks = config.Buildpacks
 
 		if descriptor.Exclude != nil {
 			exclude = descriptor.Exclude
@@ -276,6 +287,14 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 			include = descriptor.Include
 		}
 	}
+
+	telemetryData.Custom1Label = "cnbBuildStepData"
+	customData, err := json.Marshal(customTelemetryData)
+	if err != nil {
+		log.SetErrorCategory(log.ErrorCustom)
+		return errors.Wrap(err, "failed to marshal custom telemetry data")
+	}
+	telemetryData.Custom1 = string(customData)
 
 	if config.BuildEnvVars != nil && len(config.BuildEnvVars) > 0 {
 		log.Entry().Infof("Setting custom environment variables: '%v'", config.BuildEnvVars)
