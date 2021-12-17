@@ -36,10 +36,15 @@ type cnbBuildUtilsBundle struct {
 }
 
 type cnbBuildTelemetryData struct {
-	Version               int             `json:"version"`
-	Config                cnbBuildOptions `json:"config"`
-	ProjectDescriptorUsed bool            `json:"projectDescriptorUsed"`
-	Buildpacks            []string        `json:"buildpacks"`
+	Version        int      `json:"version"`
+	ImageTag       string   `json:"imageTag"`
+	AdditionalTags []string `json:"additionalTags"`
+	BindingKeys    []string `json:"bindingKeys"`
+	Path           string   `json:"path"`
+	// TODO: BuildEnvVars - only keys; config, descripter, resulting
+	// TODO: content only for specific BuildEnvVars (BP_JAVA_VERSION, BP_NODE_VERSION)
+	// TODO: Buildpacks - config, descripter, resulting
+	// TODO: projectorDescriptor: include/exclude only boolean for now
 }
 
 func setCustomBuildpacks(bpacks []string, dockerCreds string, utils cnbutils.BuildUtils) (string, string, error) {
@@ -244,10 +249,22 @@ func (c *cnbBuildOptions) mergeEnvVars(vars map[string]interface{}) {
 	}
 }
 
+func createTelemetryData(config *cnbBuildOptions) cnbBuildTelemetryData {
+	bindingKeys := []string{}
+	for k := range config.Bindings {
+		bindingKeys = append(bindingKeys, k)
+	}
+	customTelemetryData := cnbBuildTelemetryData{
+		Version:        1,
+		ImageTag:       config.ContainerImageTag,
+		AdditionalTags: config.AdditionalTags,
+		BindingKeys:    bindingKeys,
+	}
+	return customTelemetryData
+}
+
 func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, utils cnbutils.BuildUtils, commonPipelineEnvironment *cnbBuildCommonPipelineEnvironment, httpClient piperhttp.Sender) error {
 	var err error
-
-	customTelemetryData := cnbBuildTelemetryData{Version: 1, Config: *config}
 
 	err = isBuilder(utils)
 	if err != nil {
@@ -264,7 +281,6 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		return errors.Wrap(err, "failed to check if project descriptor exists")
 	}
 
-	customTelemetryData.ProjectDescriptorUsed = projDescExists
 	if projDescExists {
 		descriptor, err := project.ParseDescriptor(config.ProjectDescriptor, utils, httpClient)
 		if err != nil {
@@ -277,7 +293,6 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		if (config.Buildpacks == nil || len(config.Buildpacks) == 0) && len(descriptor.Buildpacks) > 0 {
 			config.Buildpacks = descriptor.Buildpacks
 		}
-		customTelemetryData.Buildpacks = config.Buildpacks
 
 		if descriptor.Exclude != nil {
 			exclude = descriptor.Exclude
@@ -288,6 +303,7 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		}
 	}
 
+	customTelemetryData := createTelemetryData(config)
 	telemetryData.Custom1Label = "cnbBuildStepData"
 	customData, err := json.Marshal(customTelemetryData)
 	if err != nil {
