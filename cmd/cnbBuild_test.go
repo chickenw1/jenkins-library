@@ -284,7 +284,7 @@ func TestRunCnbBuild(t *testing.T) {
 			AdditionalTags:       []string{"latest"},
 			BuildEnvVars:         map[string]interface{}{},
 			Bindings:             map[string]interface{}{"SECRET": map[string]string{"key": "KEY", "file": "a_file"}},
-			//Path:                 "target", // TODO: Add Path
+			Path:                 "target",
 		}
 
 		utils := newCnbBuildTestsUtils()
@@ -300,7 +300,8 @@ include = []
 [[build.buildpacks]]
 uri = "some-buildpack"`))
 		utils.FilesMock.AddFile("a_file", []byte(`{}`))
-		utils.FilesMock.AddFile("/workspace/target/somelib.jar", []byte(`FFFFFF`))
+		utils.FilesMock.AddDir("target")
+		utils.FilesMock.AddFile("target/somelib.jar", []byte(`FFFFFF`))
 
 		addBuilderFiles(&utils)
 
@@ -315,7 +316,7 @@ uri = "some-buildpack"`))
 		assert.NoError(t, err)
 		assert.Equal(t, 1, customData.Version)
 		assert.Equal(t, "3.1.5", customData.ImageTag)
-		//assert.Equal(t, "target/somelib.jar", customData.Path)
+		assert.Equal(t, "target", customData.Path)
 		assert.Contains(t, customData.AdditionalTags, "latest")
 		assert.Contains(t, customData.BindingKeys, "SECRET")
 	})
