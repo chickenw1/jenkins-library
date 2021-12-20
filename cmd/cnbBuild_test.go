@@ -282,7 +282,7 @@ func TestRunCnbBuild(t *testing.T) {
 			DockerConfigJSON:     "/path/to/config.json",
 			ProjectDescriptor:    "project.toml",
 			AdditionalTags:       []string{"latest"},
-			BuildEnvVars:         map[string]interface{}{},
+			Buildpacks:           []string{"java", "node"},
 			Bindings:             map[string]interface{}{"SECRET": map[string]string{"key": "KEY", "file": "a_file"}},
 			Path:                 "target",
 		}
@@ -296,6 +296,7 @@ version = "1.0.0"
 
 [build]
 include = []
+exclude = ["*.tar"]
 
 [[build.buildpacks]]
 uri = "some-buildpack"`))
@@ -319,6 +320,16 @@ uri = "some-buildpack"`))
 		assert.Equal(t, "target", customData.Path)
 		assert.Contains(t, customData.AdditionalTags, "latest")
 		assert.Contains(t, customData.BindingKeys, "SECRET")
+
+		assert.Contains(t, customData.Buildpacks.FromConfig, "java")
+		assert.NotContains(t, customData.Buildpacks.FromProjectDescriptor, "java")
+		assert.Contains(t, customData.Buildpacks.FromProjectDescriptor, "some-buildpack")
+		assert.NotContains(t, customData.Buildpacks.Overall, "some-buildpack")
+		assert.Contains(t, customData.Buildpacks.Overall, "java")
+
+		assert.True(t, customData.ProjectDescriptor.Used)
+		assert.False(t, customData.ProjectDescriptor.IncludeUsed)
+		assert.True(t, customData.ProjectDescriptor.ExcludeUsed)
 	})
 
 	t.Run("success case (build env telemetry was added)", func(t *testing.T) {
@@ -347,6 +358,9 @@ value='var'
 [[build.env]]
 name='BP_NODE_VERSION'
 value='11'
+
+[[build.buildpacks]]
+uri = "some-buildpack"
 `))
 
 		addBuilderFiles(&utils)
@@ -370,6 +384,8 @@ value='11'
 
 		assert.Equal(t, "8", customData.BuildEnv.JVMVersion)
 		assert.Equal(t, "11", customData.BuildEnv.NodeVersion)
+
+		assert.Contains(t, customData.Buildpacks.Overall, "some-buildpack")
 	})
 
 }
