@@ -320,4 +320,56 @@ uri = "some-buildpack"`))
 		assert.Contains(t, customData.AdditionalTags, "latest")
 		assert.Contains(t, customData.BindingKeys, "SECRET")
 	})
+
+	t.Run("success case (build env telemetry was added)", func(t *testing.T) {
+		t.Parallel()
+		commonPipelineEnvironment := cnbBuildCommonPipelineEnvironment{}
+		registry := "some-registry"
+		config := cnbBuildOptions{
+			ContainerImageName:   "my-image",
+			ContainerImageTag:    "3.1.5",
+			ContainerRegistryURL: registry,
+			ProjectDescriptor:    "project.toml",
+			BuildEnvVars:         map[string]interface{}{"CONFIG_KEY": "var", "BP_JVM_VERSION": "8"},
+		}
+
+		utils := newCnbBuildTestsUtils()
+		utils.FilesMock.AddFile("project.toml", []byte(`[project]
+id = "test"
+
+[build]
+include = []
+
+[[build.env]]
+name='PROJECT_KEY'
+value='var'
+
+[[build.env]]
+name='BP_NODE_VERSION'
+value='11'
+`))
+
+		addBuilderFiles(&utils)
+
+		telemetryData := telemetry.CustomData{}
+		err := runCnbBuild(&config, &telemetryData, &utils, &commonPipelineEnvironment, &piperhttp.Client{})
+		assert.NoError(t, err)
+
+		customDataAsString := telemetryData.Custom1
+		customData := cnbBuildTelemetryData{}
+		err = json.Unmarshal([]byte(customDataAsString), &customData)
+
+		assert.NoError(t, err)
+		assert.Contains(t, customData.BuildEnv.KeysFromConfig, "CONFIG_KEY")
+		assert.NotContains(t, customData.BuildEnv.KeysFromProjectDescriptor, "CONFIG_KEY")
+		assert.Contains(t, customData.BuildEnv.KeysOverall, "CONFIG_KEY")
+
+		assert.NotContains(t, customData.BuildEnv.KeysFromConfig, "PROJECT_KEY")
+		assert.Contains(t, customData.BuildEnv.KeysFromProjectDescriptor, "PROJECT_KEY")
+		assert.Contains(t, customData.BuildEnv.KeysOverall, "PROJECT_KEY")
+
+		assert.Equal(t, "8", customData.BuildEnv.JVMVersion)
+		assert.Equal(t, "11", customData.BuildEnv.NodeVersion)
+	})
+
 }

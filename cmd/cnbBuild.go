@@ -36,15 +36,22 @@ type cnbBuildUtilsBundle struct {
 }
 
 type cnbBuildTelemetryData struct {
-	Version        int      `json:"version"`
-	ImageTag       string   `json:"imageTag"`
-	AdditionalTags []string `json:"additionalTags"`
-	BindingKeys    []string `json:"bindingKeys"`
-	Path           string   `json:"path"`
-	// TODO: BuildEnvVars - only keys; config, descripter, resulting
-	// TODO: content only for specific BuildEnvVars (BP_JAVA_VERSION, BP_NODE_VERSION)
+	Version        int                           `json:"version"`
+	ImageTag       string                        `json:"imageTag"`
+	AdditionalTags []string                      `json:"additionalTags"`
+	BindingKeys    []string                      `json:"bindingKeys"`
+	Path           string                        `json:"path"`
+	BuildEnv       cnbBuildTelemetryDataBuildEnv `json:"buildEnv"`
 	// TODO: Buildpacks - config, descripter, resulting
 	// TODO: projectorDescriptor: include/exclude only boolean for now
+}
+
+type cnbBuildTelemetryDataBuildEnv struct {
+	KeysFromConfig            []string `json:"keysFromConfig"`
+	KeysFromProjectDescriptor []string `json:"keysFromProjectDescriptor"`
+	KeysOverall               []string `json:"keysOverall"`
+	JVMVersion                string   `json:"jvmVersion"`
+	NodeVersion               string   `json:"nodeVersion"`
 }
 
 func setCustomBuildpacks(bpacks []string, dockerCreds string, utils cnbutils.BuildUtils) (string, string, error) {
@@ -241,23 +248,55 @@ func (c *cnbBuildOptions) mergeEnvVars(vars map[string]interface{}) {
 	}
 }
 
-func createTelemetryData(config *cnbBuildOptions) cnbBuildTelemetryData {
+func addConfigTelemetryData(data *cnbBuildTelemetryData, config *cnbBuildOptions) {
 	bindingKeys := []string{}
 	for k := range config.Bindings {
 		bindingKeys = append(bindingKeys, k)
 	}
-	customTelemetryData := cnbBuildTelemetryData{
-		Version:        1,
-		ImageTag:       config.ContainerImageTag,
-		AdditionalTags: config.AdditionalTags,
-		BindingKeys:    bindingKeys,
-		Path:           config.Path,
+	data.ImageTag = config.ContainerImageTag
+	data.AdditionalTags = config.AdditionalTags
+	data.BindingKeys = bindingKeys
+	data.Path = config.Path
+
+	configKeys := data.BuildEnv.KeysFromConfig
+	overallKeys := data.BuildEnv.KeysOverall
+	for key := range config.BuildEnvVars {
+		configKeys = append(configKeys, key)
+		overallKeys = append(overallKeys, key)
 	}
-	return customTelemetryData
+	data.BuildEnv.KeysFromConfig = configKeys
+	data.BuildEnv.KeysOverall = overallKeys
+	addSpecifcEnvToTelemetryData(data, config.BuildEnvVars)
+}
+
+func addProjectDescriptorTelemetryData(data *cnbBuildTelemetryData, descriptor project.Descriptor) {
+	descriptorKeys := data.BuildEnv.KeysFromProjectDescriptor
+	overallKeys := data.BuildEnv.KeysOverall
+	for key := range descriptor.EnvVars {
+		descriptorKeys = append(descriptorKeys, key)
+		overallKeys = append(overallKeys, key)
+	}
+	data.BuildEnv.KeysFromProjectDescriptor = descriptorKeys
+	data.BuildEnv.KeysOverall = overallKeys
+	addSpecifcEnvToTelemetryData(data, descriptor.EnvVars)
+}
+
+func addSpecifcEnvToTelemetryData(data *cnbBuildTelemetryData, env map[string]interface{}) {
+	value, exists := env["BP_NODE_VERSION"]
+	if exists {
+		data.BuildEnv.NodeVersion = fmt.Sprintf("%v", value)
+	}
+	value, exists = env["BP_JVM_VERSION"]
+	if exists {
+		data.BuildEnv.JVMVersion = fmt.Sprintf("%v", value)
+	}
 }
 
 func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, utils cnbutils.BuildUtils, commonPipelineEnvironment *cnbBuildCommonPipelineEnvironment, httpClient piperhttp.Sender) error {
 	var err error
+
+	customTelemetryData := cnbBuildTelemetryData{Version: 1}
+	addConfigTelemetryData(&customTelemetryData, config)
 
 	err = isBuilder(utils)
 	if err != nil {
@@ -280,6 +319,7 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 			log.SetErrorCategory(log.ErrorConfiguration)
 			return errors.Wrapf(err, "failed to parse %s", config.ProjectDescriptor)
 		}
+		addProjectDescriptorTelemetryData(&customTelemetryData, descriptor)
 
 		config.mergeEnvVars(descriptor.EnvVars)
 
@@ -296,7 +336,6 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		}
 	}
 
-	customTelemetryData := createTelemetryData(config)
 	telemetryData.Custom1Label = "cnbBuildStepData"
 	customData, err := json.Marshal(customTelemetryData)
 	if err != nil {
