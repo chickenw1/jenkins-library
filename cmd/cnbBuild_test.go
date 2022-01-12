@@ -382,8 +382,9 @@ uri = "some-buildpack"
 		assert.Contains(t, customData.BuildEnv.KeysFromProjectDescriptor, "PROJECT_KEY")
 		assert.Contains(t, customData.BuildEnv.KeysOverall, "PROJECT_KEY")
 
-		assert.Equal(t, "8", customData.BuildEnv.JVMVersion)
-		assert.Equal(t, "11", customData.BuildEnv.NodeVersion)
+		assert.Equal(t, "8", customData.BuildEnv.KeyValues["BP_JVM_VERSION"])
+		assert.Equal(t, "11", customData.BuildEnv.KeyValues["BP_NODE_VERSION"])
+		assert.NotContains(t, customData.BuildEnv.KeyValues, "PROJECT_KEY")
 
 		assert.Contains(t, customData.Buildpacks.Overall, "some-buildpack")
 	})

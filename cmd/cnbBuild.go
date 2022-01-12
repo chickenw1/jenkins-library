@@ -47,12 +47,14 @@ type cnbBuildTelemetryData struct {
 	ProjectDescriptor cnbBuildTelemetryDataProjectDescriptor `json:"projectDescriptor"`
 }
 
+var allowedEnvKeys = map[string]interface{}{"BP_JVM_VERSION": nil, "BP_NODE_VERSION": nil}
+
 type cnbBuildTelemetryDataBuildEnv struct {
-	KeysFromConfig            []string `json:"keysFromConfig"`
-	KeysFromProjectDescriptor []string `json:"keysFromProjectDescriptor"`
-	KeysOverall               []string `json:"keysOverall"`
-	JVMVersion                string   `json:"jvmVersion"`
-	NodeVersion               string   `json:"nodeVersion"`
+	KeysFromConfig            []string               `json:"keysFromConfig"`
+	KeysFromProjectDescriptor []string               `json:"keysFromProjectDescriptor"`
+	KeysOverall               []string               `json:"keysOverall"`
+	JVMVersion                string                 `json:"jvmVersion"`
+	KeyValues                 map[string]interface{} `json:"keyValues"`
 }
 
 type cnbBuildTelemetryDataBuildpacks struct {
@@ -303,13 +305,15 @@ func addProjectDescriptorTelemetryData(data *cnbBuildTelemetryData, descriptor p
 }
 
 func addSpecifcEnvToTelemetryData(data *cnbBuildTelemetryData, env map[string]interface{}) {
-	value, exists := env["BP_NODE_VERSION"]
-	if exists {
-		data.BuildEnv.NodeVersion = fmt.Sprintf("%v", value)
+
+	if data.BuildEnv.KeyValues == nil {
+		data.BuildEnv.KeyValues = map[string]interface{}{}
 	}
-	value, exists = env["BP_JVM_VERSION"]
-	if exists {
-		data.BuildEnv.JVMVersion = fmt.Sprintf("%v", value)
+	for key, value := range env {
+		_, allowed := allowedEnvKeys[key]
+		if allowed {
+			data.BuildEnv.KeyValues[key] = value
+		}
 	}
 }
 
