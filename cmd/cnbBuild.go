@@ -13,6 +13,7 @@ import (
 	"github.com/SAP/jenkins-library/pkg/certutils"
 	"github.com/SAP/jenkins-library/pkg/cnbutils"
 	"github.com/SAP/jenkins-library/pkg/cnbutils/bindings"
+	"github.com/SAP/jenkins-library/pkg/cnbutils/privacy"
 	"github.com/SAP/jenkins-library/pkg/cnbutils/project"
 	"github.com/SAP/jenkins-library/pkg/cnbutils/project/metadata"
 	"github.com/SAP/jenkins-library/pkg/command"
@@ -283,7 +284,7 @@ func addConfigTelemetryData(data *cnbBuildTelemetryData, config *cnbBuildOptions
 	data.BuildEnv.KeysOverall = overallKeys
 	addSpecifcEnvToTelemetryData(data, config.BuildEnvVars)
 
-	data.Buildpacks.FromConfig = config.Buildpacks
+	data.Buildpacks.FromConfig = privacy.FilterBuildpacks(config.Buildpacks)
 }
 
 func addProjectDescriptorTelemetryData(data *cnbBuildTelemetryData, descriptor project.Descriptor) {
@@ -297,7 +298,7 @@ func addProjectDescriptorTelemetryData(data *cnbBuildTelemetryData, descriptor p
 	data.BuildEnv.KeysOverall = overallKeys
 	addSpecifcEnvToTelemetryData(data, descriptor.EnvVars)
 
-	data.Buildpacks.FromProjectDescriptor = descriptor.Buildpacks
+	data.Buildpacks.FromProjectDescriptor = privacy.FilterBuildpacks(descriptor.Buildpacks)
 
 	data.ProjectDescriptor.Used = true
 	data.ProjectDescriptor.IncludeUsed = descriptor.Include != nil

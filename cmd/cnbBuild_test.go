@@ -282,7 +282,7 @@ func TestRunCnbBuild(t *testing.T) {
 			DockerConfigJSON:     "/path/to/config.json",
 			ProjectDescriptor:    "project.toml",
 			AdditionalTags:       []string{"latest"},
-			Buildpacks:           []string{"java", "node"},
+			Buildpacks:           []string{"paketobuildpacks/java", "gcr.io/paketo-buildpacks/node"},
 			Bindings:             map[string]interface{}{"SECRET": map[string]string{"key": "KEY", "file": "a_file"}},
 			Path:                 "target",
 		}
@@ -321,11 +321,11 @@ uri = "some-buildpack"`))
 		assert.Contains(t, customData.AdditionalTags, "latest")
 		assert.Contains(t, customData.BindingKeys, "SECRET")
 
-		assert.Contains(t, customData.Buildpacks.FromConfig, "java")
-		assert.NotContains(t, customData.Buildpacks.FromProjectDescriptor, "java")
-		assert.Contains(t, customData.Buildpacks.FromProjectDescriptor, "some-buildpack")
-		assert.NotContains(t, customData.Buildpacks.Overall, "some-buildpack")
-		assert.Contains(t, customData.Buildpacks.Overall, "java")
+		assert.Contains(t, customData.Buildpacks.FromConfig, "paketobuildpacks/java")
+		assert.NotContains(t, customData.Buildpacks.FromProjectDescriptor, "paketobuildpacks/java")
+		assert.Contains(t, customData.Buildpacks.FromProjectDescriptor, "<retracted>")
+		assert.NotContains(t, customData.Buildpacks.Overall, "<retracted>")
+		assert.Contains(t, customData.Buildpacks.Overall, "paketobuildpacks/java")
 
 		assert.True(t, customData.ProjectDescriptor.Used)
 		assert.False(t, customData.ProjectDescriptor.IncludeUsed)
