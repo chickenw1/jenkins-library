@@ -48,8 +48,6 @@ type cnbBuildTelemetryData struct {
 	ProjectDescriptor cnbBuildTelemetryDataProjectDescriptor `json:"projectDescriptor"`
 }
 
-var allowedEnvKeys = map[string]interface{}{"BP_JVM_VERSION": nil, "BP_NODE_VERSION": nil}
-
 type cnbBuildTelemetryDataBuildEnv struct {
 	KeysFromConfig            []string               `json:"keysFromConfig"`
 	KeysFromProjectDescriptor []string               `json:"keysFromProjectDescriptor"`
@@ -282,7 +280,6 @@ func addConfigTelemetryData(data *cnbBuildTelemetryData, config *cnbBuildOptions
 	}
 	data.BuildEnv.KeysFromConfig = configKeys
 	data.BuildEnv.KeysOverall = overallKeys
-	addSpecifcEnvToTelemetryData(data, config.BuildEnvVars)
 
 	data.Buildpacks.FromConfig = privacy.FilterBuildpacks(config.Buildpacks)
 }
@@ -296,26 +293,12 @@ func addProjectDescriptorTelemetryData(data *cnbBuildTelemetryData, descriptor p
 	}
 	data.BuildEnv.KeysFromProjectDescriptor = descriptorKeys
 	data.BuildEnv.KeysOverall = overallKeys
-	addSpecifcEnvToTelemetryData(data, descriptor.EnvVars)
 
 	data.Buildpacks.FromProjectDescriptor = privacy.FilterBuildpacks(descriptor.Buildpacks)
 
 	data.ProjectDescriptor.Used = true
 	data.ProjectDescriptor.IncludeUsed = descriptor.Include != nil
 	data.ProjectDescriptor.ExcludeUsed = descriptor.Exclude != nil
-}
-
-func addSpecifcEnvToTelemetryData(data *cnbBuildTelemetryData, env map[string]interface{}) {
-
-	if data.BuildEnv.KeyValues == nil {
-		data.BuildEnv.KeyValues = map[string]interface{}{}
-	}
-	for key, value := range env {
-		_, allowed := allowedEnvKeys[key]
-		if allowed {
-			data.BuildEnv.KeyValues[key] = value
-		}
-	}
 }
 
 func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, utils cnbutils.BuildUtils, commonPipelineEnvironment *cnbBuildCommonPipelineEnvironment, httpClient piperhttp.Sender) error {
@@ -362,6 +345,7 @@ func runCnbBuild(config *cnbBuildOptions, telemetryData *telemetry.CustomData, u
 		}
 	}
 	customTelemetryData.Buildpacks.Overall = config.Buildpacks
+	customTelemetryData.BuildEnv.KeyValues = privacy.FilterEnv(config.BuildEnvVars)
 
 	telemetryData.Custom1Label = "cnbBuildStepData"
 	customData, err := json.Marshal(customTelemetryData)

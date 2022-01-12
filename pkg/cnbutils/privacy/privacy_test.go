@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRunCnbBuild(t *testing.T) {
+func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 	t.Parallel()
 
 	t.Run("allows paketo", func(t *testing.T) {
@@ -81,4 +81,31 @@ func TestRunCnbBuild(t *testing.T) {
 		}
 	})
 
+}
+
+func TestCnbPrivacy_FilterEnv(t *testing.T) {
+	t.Parallel()
+
+	t.Run("copies only allow listed keys", func(t *testing.T) {
+		env := map[string]interface{}{
+			"PRIVATE":         "paketobuildpacks/nodejs:v1",
+			"BP_NODE_VERSION": "8",
+			"BP_JVM_VERSION":  "11",
+		}
+
+		filteredEnv := privacy.FilterEnv(env)
+
+		assert.Equal(t, map[string]interface{}{
+			"BP_NODE_VERSION": "8",
+			"BP_JVM_VERSION":  "11",
+		}, filteredEnv)
+	})
+
+	t.Run("works on nil map", func(t *testing.T) {
+		var env map[string]interface{} = nil
+
+		filteredEnv := privacy.FilterEnv(env)
+
+		assert.Empty(t, filteredEnv)
+	})
 }

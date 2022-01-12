@@ -32,3 +32,16 @@ func FilterBuildpacks(buildpacks []string) []string {
 	}
 	return result
 }
+
+var allowedEnvKeys = map[string]interface{}{"BP_JVM_VERSION": nil, "BP_NODE_VERSION": nil}
+
+func FilterEnv(in map[string]interface{}) map[string]interface{} {
+	out := map[string]interface{}{}
+	for key, value := range in {
+		_, allowed := allowedEnvKeys[key]
+		if allowed {
+			out[key] = value
+		}
+	}
+	return out
+}
