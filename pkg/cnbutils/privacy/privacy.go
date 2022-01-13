@@ -6,6 +6,29 @@ import (
 	containerName "github.com/google/go-containerregistry/pkg/name"
 )
 
+var allowedBuildpackSources = []struct {
+	registry, repositoryPrefix string
+}{
+	// Paketo
+	{
+		registry:         "gcr.io",
+		repositoryPrefix: "paketo-buildpacks/",
+	}, {
+		registry:         "index.docker.io",
+		repositoryPrefix: "paketobuildpacks/",
+	},
+	// Google Buildpacks
+	{
+		registry:         "gcr.io",
+		repositoryPrefix: "buildpacks/",
+	},
+	// Heroku
+	{
+		registry:         "public.ecr.aws",
+		repositoryPrefix: "heroku-buildpacks/",
+	},
+}
+
 func FilterBuildpacks(buildpacks []string) []string {
 	result := make([]string, 0, len(buildpacks))
 	for _, buildpack := range buildpacks {
@@ -18,13 +41,15 @@ func FilterBuildpacks(buildpacks []string) []string {
 		registry := ref.Context().Registry.Name()
 		repository := ref.Context().RepositoryStr()
 
-		if registry == "gcr.io" && strings.HasPrefix(repository, "paketo-buildpacks/") {
-			result = append(result, buildpack)
-		} else if registry == "index.docker.io" && strings.HasPrefix(repository, "paketobuildpacks/") {
-			result = append(result, buildpack)
-		} else if registry == "gcr.io" && strings.HasPrefix(repository, "buildpacks/") {
-			result = append(result, buildpack)
-		} else if registry == "public.ecr.aws" && strings.HasPrefix(repository, "heroku-buildpacks/") {
+		allowed := false
+		for _, allowedBuildpackSource := range allowedBuildpackSources {
+			if registry == allowedBuildpackSource.registry && strings.HasPrefix(repository, allowedBuildpackSource.repositoryPrefix) {
+				allowed = true
+				break
+			}
+		}
+
+		if allowed {
 			result = append(result, buildpack)
 		} else {
 			result = append(result, "<retracted>")
