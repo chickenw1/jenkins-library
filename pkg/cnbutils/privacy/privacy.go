@@ -59,7 +59,18 @@ func FilterBuildpacks(buildpacks []string) []string {
 	return result
 }
 
-var allowedEnvKeys = map[string]interface{}{"BP_JVM_VERSION": nil, "BP_NODE_VERSION": nil}
+var allowedEnvKeys = map[string]interface{}{
+	// Java
+	// https://github.com/paketo-buildpacks/sap-machine and https://github.com/paketo-buildpacks/bellsoft-liberica
+	"BP_JVM_VERSION": nil,
+	"BP_JVM_TYPE":    nil,
+	// https://github.com/paketo-buildpacks/apache-tomcat
+	"BP_TOMCAT_VERSION": nil,
+
+	// Node
+	// https://github.com/paketo-buildpacks/node-engine
+	"BP_NODE_VERSION": nil,
+}
 
 // FilterEnv filters a map of environment variables to redact Personally Identifiable Information (PII)
 func FilterEnv(in map[string]interface{}) map[string]interface{} {
