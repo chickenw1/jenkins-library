@@ -5,6 +5,7 @@ import (
 
 	"github.com/SAP/jenkins-library/pkg/cnbutils/privacy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
@@ -20,7 +21,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		filtered := privacy.FilterBuildpacks(aliases)
 
-		assert.Len(t, filtered, len(aliases))
+		require.Len(t, filtered, len(aliases))
 		for i := range filtered {
 			assert.Equal(t, aliases[i], filtered[i])
 		}
@@ -33,7 +34,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		filtered := privacy.FilterBuildpacks(aliases)
 
-		assert.Len(t, filtered, len(aliases))
+		require.Len(t, filtered, len(aliases))
 		for i := range filtered {
 			assert.Equal(t, aliases[i], filtered[i])
 		}
@@ -47,7 +48,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		filtered := privacy.FilterBuildpacks(aliases)
 
-		assert.Len(t, filtered, len(aliases))
+		require.Len(t, filtered, len(aliases))
 		for i := range filtered {
 			assert.Equal(t, aliases[i], filtered[i])
 		}
@@ -62,7 +63,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		filtered := privacy.FilterBuildpacks(images)
 
-		assert.Len(t, filtered, len(images))
+		require.Len(t, filtered, len(images))
 		for _, image := range filtered {
 			assert.Equal(t, "<retracted>", image)
 		}
@@ -75,7 +76,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		filtered := privacy.FilterBuildpacks(images)
 
-		assert.Len(t, filtered, len(images))
+		require.Len(t, filtered, len(images))
 		for _, image := range filtered {
 			assert.Equal(t, "<error>", image)
 		}
