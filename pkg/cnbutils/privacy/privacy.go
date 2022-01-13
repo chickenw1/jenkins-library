@@ -29,6 +29,7 @@ var allowedBuildpackSources = []struct {
 	},
 }
 
+// FilterBuildpacks filters a list of buildpacks to redact Personally Identifiable Information (PII) like the hostname of a personal registry
 func FilterBuildpacks(buildpacks []string) []string {
 	result := make([]string, 0, len(buildpacks))
 	for _, buildpack := range buildpacks {
@@ -60,6 +61,7 @@ func FilterBuildpacks(buildpacks []string) []string {
 
 var allowedEnvKeys = map[string]interface{}{"BP_JVM_VERSION": nil, "BP_NODE_VERSION": nil}
 
+// FilterEnv filters a map of environment variables to redact Personally Identifiable Information (PII)
 func FilterEnv(in map[string]interface{}) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, value := range in {
