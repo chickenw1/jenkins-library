@@ -52,7 +52,7 @@ func FilterBuildpacks(buildpacks []string) []string {
 		if allowed {
 			result = append(result, buildpack)
 		} else {
-			result = append(result, "<retracted>")
+			result = append(result, "<redacted>")
 		}
 	}
 	return result

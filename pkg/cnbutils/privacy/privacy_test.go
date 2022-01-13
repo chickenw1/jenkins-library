@@ -65,7 +65,7 @@ func TestCnbPrivacy_FilterBuildpacks(t *testing.T) {
 
 		require.Len(t, filtered, len(images))
 		for _, image := range filtered {
-			assert.Equal(t, "<retracted>", image)
+			assert.Equal(t, "<redacted>", image)
 		}
 	})
 

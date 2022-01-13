@@ -323,8 +323,8 @@ uri = "some-buildpack"`))
 
 		assert.Contains(t, customData.Buildpacks.FromConfig, "paketobuildpacks/java")
 		assert.NotContains(t, customData.Buildpacks.FromProjectDescriptor, "paketobuildpacks/java")
-		assert.Contains(t, customData.Buildpacks.FromProjectDescriptor, "<retracted>")
-		assert.NotContains(t, customData.Buildpacks.Overall, "<retracted>")
+		assert.Contains(t, customData.Buildpacks.FromProjectDescriptor, "<redacted>")
+		assert.NotContains(t, customData.Buildpacks.Overall, "<redacted>")
 		assert.Contains(t, customData.Buildpacks.Overall, "paketobuildpacks/java")
 
 		assert.True(t, customData.ProjectDescriptor.Used)
